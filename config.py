@@ -440,11 +440,10 @@ class Hostname(Pane):
         """\
         Called to save a changed hostname.
         """
-        #self._edit_hostname.setEnabled(False)
-        #self._btn_apply.setEnabled(False)
-        #self.run_script('hostname', self._edit_hostname.text(),
-        #                self._on_apply_finished)
-        self._on_apply_finished(0, 0)
+        self._edit_hostname.setEnabled(False)
+        self._btn_apply.setEnabled(False)
+        self.run_script('hostname', self._edit_hostname.text(),
+                        self._on_apply_finished)
 
     def _on_apply_finished(self, exit_code, exit_status):
         """\
