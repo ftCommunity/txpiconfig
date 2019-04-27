@@ -396,8 +396,6 @@ class Hostname(Pane):
         """\
         Update hostname.
         """
-        # Gets enabled if hostname changes, see _on_hostname_edited
-        self._btn_apply.setEnabled(False)
         self._retrieve_hostname()
 
     def _retrieve_hostname(self):
@@ -409,6 +407,8 @@ class Hostname(Pane):
         self._btn_apply.setEnabled(False)
         self._edit_hostname.setText(self._get_hostname())
         self._edit_hostname.setEnabled(True)
+        # Will be enabled if text changes, see _on_hostname_edited
+        self._btn_apply.setEnabled(False)
 
     @staticmethod
     def _get_hostname():
