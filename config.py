@@ -61,8 +61,8 @@ class ConfigApp(TouchApplication):
         menu = win.addMenu()
         container = PaneContainer(self, menu=menu)
         # Register config panes
-        container.add_pane(Services(container))
-        container.add_pane(Hostname(container))
+        container.add_pane(ServicesPane(container))
+        container.add_pane(HostnamePane(container))
         win.setCentralWidget(container)
         win.show()
         self.exec_()
@@ -275,12 +275,12 @@ _SERVICE_SSH = 'ssh'
 _SERVICE_VNC = 'x11vnc'
 
 
-class Services(Pane):
+class ServicesPane(Pane):
     """\
-    Pane to configure servers.
+    Pane to configure services.
     """
     def __init__(self, parent):
-        super(Services, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
+        super(ServicesPane, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
         self._cb_ssh = QCheckBox(QCoreApplication.translate('ConfigApp', 'SSH server'))
         self._cb_vnc = QCheckBox(QCoreApplication.translate('ConfigApp', 'VNC server'))
         layout = QVBoxLayout()
@@ -373,12 +373,12 @@ class Services(Pane):
 
 _HOSTNAME_PATTERN = re.compile(r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$')
 
-class Hostname(Pane):
+class HostnamePane(Pane):
     """\
     Pane to configure the hostname.
     """
     def __init__(self, parent):
-        super(Hostname, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Hostname'))
+        super(HostnamePane, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Hostname'))
         self._edit_hostname = QLineEdit(self)
         self._btn_apply = QPushButton(QCoreApplication.translate('ConfigApp', 'Apply'))
         self._btn_apply.clicked.connect(self._on_apply)
