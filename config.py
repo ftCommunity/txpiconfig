@@ -39,7 +39,7 @@ __version__ = _parser.get('app', 'version', fallback='n/a')
 del _parser
 
 
-def _app_path():
+def app_path():
     """\
     Returns the path of the application directory.
     """
@@ -52,7 +52,7 @@ class ConfigApp(TouchApplication):
     def __init__(self, args):
         super(ConfigApp, self).__init__(args)
         translator = QTranslator()
-        if translator.load(QLocale.system(), os.path.join(_app_path(), 'config_')):
+        if translator.load(QLocale.system(), os.path.join(app_path(), 'config_')):
             # Translation successfully loaded, install translator
             self.installTranslator(translator)
         win = TouchWindow(QCoreApplication.translate('ConfigApp', 'Config'))
@@ -64,12 +64,20 @@ class ConfigApp(TouchApplication):
         container.add_pane(Services(container))
         container.add_pane(Hostname(container))
         win.setCentralWidget(container)
-        action = menu.addAction(QCoreApplication.translate('ConfigApp', 'About'))
-        action.triggered.connect(self.on_menu_about)
         win.show()
         self.exec_()
 
     def iambusy(self, busy):
+        """\
+        Indicates that the app is (not) busy.
+
+        If the app is busy, the window will be blurred and a busy animation is
+        shown on top of the window.
+
+        See also ``_busy`` and ``_blur_window``
+
+        :param bool busy: ``True`` to indicate that the app is busy, otherwise ``False``.
+        """
         self._blur_window(busy)
         self._busy(busy)
 
@@ -86,25 +94,6 @@ class ConfigApp(TouchApplication):
         elif not busy and self._busy_animation is not None:
             self._busy_animation.close()
             self._busy_animation = None
-
-    def on_menu_about(self):
-        """Shows an about dialog.
-        """
-        about_dlg = TouchMessageBox(QCoreApplication.translate('ConfigApp', 'About'), self.win)
-        about_dlg.setCancelButton()
-        # Add the application icon
-        about_dlg.addPixmap(QPixmap(os.path.join(_app_path(), 'icon.png')))
-        # Show app name, author, version
-        about_dlg.setText('<font size="2">{name}<br><font size="1">{descr}<br><br>'
-                          'Version {version}<br>(c) 2019 Lars Heuer<br>'
-                          '<br>Icon (c) Johan H. W. Basberg'
-                          '<br>Public Domain<br>https://thenounproject.com/term/gear/1241/' \
-                            .format(name=QCoreApplication.translate('ConfigApp', 'Configuration'),
-                                    descr=QCoreApplication.translate('ConfigApp', 'Configure the TX-Pi'),
-                                    version=__version__))
-        # Close about dialog
-        about_dlg.setPosButton(QCoreApplication.translate('ConfigApp', 'Okay'))
-        about_dlg.exec_()
 
     def _blur_window(self, blur):
         """Blurs the window.
@@ -139,7 +128,7 @@ class PaneContainer(QStackedWidget):
         startpane = QWidget()
         layout = QVBoxLayout()
         lbl = QLabel()
-        lbl.setPixmap(QPixmap(os.path.join(_app_path(), 'icon.png')))
+        lbl.setPixmap(QPixmap(os.path.join(app_path(), 'icon.png')))
         layout.addLayout(PaneContainer._hcenter_widget(lbl))
         layout.addWidget(QLabel(''))
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Welcome'))
@@ -204,10 +193,10 @@ class Pane(QWidget):
         Initializes the pane.
 
         :param name: The name of the pane. The name will also be used as menu
-                     item. The name will be translated automatically.
+                     item. The name should have been translated.
         """
         super(Pane, self).__init__(parent)
-        self.name = QCoreApplication.translate('ConfigApp', name)
+        self.name = name
         self._app = None
 
     def run_script(self, name, arg, callback):
@@ -224,7 +213,7 @@ class Pane(QWidget):
             callback(exit_code, exit_status)
 
         self.parent()._app.iambusy(True)
-        script = os.path.join(_app_path(), 'scripts', name)
+        script = os.path.join(app_path(), 'scripts', name)
         proc = QProcess(self)
         proc.finished.connect(on_script_finished)
         proc.start('sudo {0} {1}'.format(script, arg))
@@ -237,7 +226,7 @@ class Pane(QWidget):
         """
         dlg = TouchMessageBox(QCoreApplication.translate('ConfigApp', 'Reboot'), self)
         dlg.setCancelButton()
-        dlg.addPixmap(QPixmap(os.path.join(_app_path(), 'reboot.png')))
+        dlg.addPixmap(QPixmap(os.path.join(app_path(), 'reboot.png')))
         dlg.setText('<font size="2">{0}<br><br><font size="1">{1}' \
                             .format(QCoreApplication.translate('ConfigApp', "It's recommended to restart the device."),
                                     QCoreApplication.translate('ConfigApp', 'Do you want to reboot now?')))
@@ -290,7 +279,7 @@ class Services(Pane):
     Pane to configure servers.
     """
     def __init__(self, parent):
-        super(Services, self).__init__(parent, name='Services')
+        super(Services, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
         self._cb_ssh = QCheckBox(QCoreApplication.translate('ConfigApp', 'SSH server'))
         self._cb_vnc = QCheckBox(QCoreApplication.translate('ConfigApp', 'VNC server'))
         layout = QVBoxLayout()
@@ -389,7 +378,7 @@ class Hostname(Pane):
     Pane to configure the hostname.
     """
     def __init__(self, parent):
-        super(Hostname, self).__init__(parent, name='Hostname')
+        super(Hostname, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Hostname'))
         self._edit_hostname = QLineEdit(self)
         self._btn_apply = QPushButton(QCoreApplication.translate('ConfigApp', 'Apply'))
         self._btn_apply.clicked.connect(self._on_apply)
@@ -407,8 +396,6 @@ class Hostname(Pane):
         """\
         Update hostname.
         """
-        # Gets enabled if hostname changes, see _on_hostname_edited
-        self._btn_apply.setEnabled(False)
         self._retrieve_hostname()
 
     def _retrieve_hostname(self):
@@ -420,6 +407,8 @@ class Hostname(Pane):
         self._btn_apply.setEnabled(False)
         self._edit_hostname.setText(self._get_hostname())
         self._edit_hostname.setEnabled(True)
+        # Will be enabled if text changes, see _on_hostname_edited
+        self._btn_apply.setEnabled(False)
 
     @staticmethod
     def _get_hostname():
