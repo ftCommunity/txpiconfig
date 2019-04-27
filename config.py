@@ -193,10 +193,10 @@ class Pane(QWidget):
         Initializes the pane.
 
         :param name: The name of the pane. The name will also be used as menu
-                     item. The name will be translated automatically.
+                     item. The name should have been translated.
         """
         super(Pane, self).__init__(parent)
-        self.name = QCoreApplication.translate('ConfigApp', name)
+        self.name = name
         self._app = None
 
     def run_script(self, name, arg, callback):
@@ -279,7 +279,7 @@ class Services(Pane):
     Pane to configure servers.
     """
     def __init__(self, parent):
-        super(Services, self).__init__(parent, name='Services')
+        super(Services, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
         self._cb_ssh = QCheckBox(QCoreApplication.translate('ConfigApp', 'SSH server'))
         self._cb_vnc = QCheckBox(QCoreApplication.translate('ConfigApp', 'VNC server'))
         layout = QVBoxLayout()
@@ -378,7 +378,7 @@ class Hostname(Pane):
     Pane to configure the hostname.
     """
     def __init__(self, parent):
-        super(Hostname, self).__init__(parent, name='Hostname')
+        super(Hostname, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Hostname'))
         self._edit_hostname = QLineEdit(self)
         self._btn_apply = QPushButton(QCoreApplication.translate('ConfigApp', 'Apply'))
         self._btn_apply.clicked.connect(self._on_apply)
