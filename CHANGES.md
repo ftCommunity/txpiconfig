@@ -1,7 +1,9 @@
-# CHANGES
+# Changes
 
-# 0.0.4 - 2019-04-dd
+# 0.0.4 - 2019-04-27
 * Removed "About" menu, adds no value but takes away valuable space
+* Added translation to German
+* Some internal code changes
 
 # 0.0.3 - 2019-04-27
 * Another hostname config fix
