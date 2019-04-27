@@ -409,7 +409,7 @@ class Hostname(Pane):
         """
         # Gets enabled if hostname changes, see _on_hostname_edited
         self._btn_apply.setEnabled(False)
-        #self._retrieve_hostname()
+        self._retrieve_hostname()
 
     def _retrieve_hostname(self):
         """\
