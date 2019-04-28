@@ -1,5 +1,9 @@
 # Changes
 
+# 0.0.5 - 2019-04-28
+* Added display config
+* Support more than one arg in Pane.run_script
+
 # 0.0.4 - 2019-04-27
 * Removed "About" menu, adds no value but takes away valuable space
 * Added translation to German
