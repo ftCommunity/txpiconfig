@@ -20,6 +20,7 @@ import re
 import sys
 import subprocess
 import configparser
+from collections import namedtuple
 from functools import partial
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -63,6 +64,7 @@ class ConfigApp(TouchApplication):
         # Register config panes
         container.add_pane(ServicesPane(container))
         container.add_pane(HostnamePane(container))
+        container.add_pane(DisplayPane(container))
         win.setCentralWidget(container)
         win.show()
         self.exec_()
@@ -200,13 +202,13 @@ class Pane(QWidget):
         self.name = name
         self._app = None
 
-    def run_script(self, name, arg, callback):
+    def run_script(self, name, args, callback):
         """\
         Runs the script with the provided name as background process
         and informs `callback` about the result.
 
         :param str name: The script name.
-        :param str arg: A single argument like 'enable' or 'disable'
+        :param list args: A list of arguments
         :param callback: A function accepting the arguments ``exit_code`` and ``exit_status``
         """
         def on_script_finished(exit_code, exit_status):
@@ -217,7 +219,7 @@ class Pane(QWidget):
         script = os.path.join(app_path(), 'scripts', name)
         proc = QProcess(self)
         proc.finished.connect(on_script_finished)
-        proc.start('sudo {0} {1}'.format(script, arg))
+        proc.start('sudo {0} {1}'.format(script, ' '.join(args)))
 
     def ask_for_reboot(self):
         """\
@@ -287,7 +289,7 @@ class ServicesPane(Pane):
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Services'))
         layout.addWidget(lbl)
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Enable / Disable'))
-        lbl.setObjectName('smalllabel')
+        lbl.setObjectName('smallerlabel')
         layout.addWidget(lbl)
         layout.addStretch()
         layout.addWidget(self._cb_ssh)
@@ -353,7 +355,7 @@ class ServicesPane(Pane):
         """
         self._cb_ssh.setEnabled(False)
         self._cb_vnc.setEnabled(False)
-        self.run_script(service_name, ('enable' if enable else 'disable'),
+        self.run_script(service_name, [('enable' if enable else 'disable')],
                         self._on_toggle_finished)
 
     def _on_toggle_finished(self, exit_code, exit_status):
@@ -431,7 +433,7 @@ class HostnamePane(Pane):
         """
         self._edit_hostname.setEnabled(False)
         self._btn_apply.setEnabled(False)
-        self.run_script('hostname', self._edit_hostname.text(),
+        self.run_script('hostname', [self._edit_hostname.text()],
                         self._on_apply_finished)
 
     def _on_apply_finished(self, exit_code, exit_status):
@@ -447,6 +449,139 @@ class HostnamePane(Pane):
         else:
             # Something went wrong
             self._retrieve_hostname()
+
+
+
+_DISPLAY_PATTERN = re.compile(r'^dtoverlay=(waveshare[^:\n]+):?'
+                              r'(?:,?(?:rotate=([0-9]+))|,?(?:speed=([0-9]+))|,?(?:fps=([0-9]+)))*$',
+                              re.MULTILINE)
+
+# Used to read / set the display configuration
+DisplayConfig = namedtuple('DisplayConfig', ['driver', 'rotation', 'speed', 'fps'])
+
+def _parse_display_config(s):
+    """\
+    Reads the display configuration from string `s` and returns a `DisplayConfig`
+    instance.
+
+    :param str s: Content of /boot/config.txt
+    :return: A DisplayConfig instance with containing the display configuration.
+    """
+    m = _DISPLAY_PATTERN.search(s)
+    if not m:
+        return None
+    driver, rotation, speed, fps = m.groups()
+    return DisplayConfig(driver=driver, rotation=(int(rotation) if rotation else None),
+                         speed=(int(speed) if speed else None),
+                         fps=(int(fps) if fps else None))
+
+
+class DisplayPane(Pane):
+    """\
+    Pane to configure the display.
+    """
+    def __init__(self, parent):
+        super(DisplayPane, self).__init__(parent, QCoreApplication.translate('ConfigApp', 'Display'))
+        self._btn_apply = QPushButton(QCoreApplication.translate('ConfigApp', 'Apply'))
+        self._btn_apply.clicked.connect(self._on_apply)
+        self._rotation = QComboBox(self)
+        self._rotation.addItems(['0', '90', '180', '270'])
+        self._speed = QLineEdit(self)
+        self._speed.setInputMask('99')
+        self._fps = QLineEdit(self)
+        self._fps.setInputMask('99')
+        layout = QVBoxLayout()
+        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Display'))
+        layout.addWidget(lbl)
+        layout.addStretch()
+        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Rotation'))
+        lbl.setObjectName('smallerlabel')
+        layout.addWidget(lbl)
+        layout.addWidget(self._rotation)
+        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'SPI speed (MHz)'))
+        lbl.setObjectName('smallerlabel')
+        layout.addWidget(lbl)
+        layout.addWidget(self._speed)
+        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Frames per second'))
+        lbl.setObjectName('smallerlabel')
+        layout.addWidget(lbl)
+        layout.addWidget(self._fps)
+        layout.addStretch()
+        layout.addWidget(self._btn_apply)
+        self.setLayout(layout)
+
+    def before_focus(self):
+        """\
+        Update GUI elements.
+        """
+        self._retrieve_display_config()
+
+    def _retrieve_display_config(self):
+        """\
+        Reads the display config and updates the GUI elements accordingly.
+        """
+        self._rotation.setEnabled(False)
+        self._speed.setEnabled(False)
+        self._fps.setEnabled(False)
+        self._btn_apply.setEnabled(False)
+        config = self._parse_config()
+        self._rotation.setCurrentIndex(0)
+        if config.rotation:
+            idx = self._rotation.findText(str(config.rotation))
+            if idx > -1:
+                self._rotation.setCurrentIndex(idx)
+        self._speed.setText('')
+        if config.speed:
+            # Convert speed to MHz
+            self._speed.setText(str(config.speed // 1000000))
+        self._fps.setText('')
+        if config.fps:
+            self._fps.setText(str(config.fps))
+        self._rotation.setEnabled(True)
+        self._speed.setEnabled(True)
+        self._fps.setEnabled(True)
+        self._btn_apply.setEnabled(True)
+
+    @staticmethod
+    def _parse_config():
+        """\
+        Reads /boot/config.txt and parses the display config.
+
+        Returns an instance of DisplayConfig
+        """
+        with open('/boot/config.txt', 'r') as f:
+            return _parse_display_config(f.read())
+
+    def _on_apply(self):
+        """\
+        Called to save the display config.
+        """
+        rotation = self._rotation.currentText()
+        speed = str(int(self._speed.text())) if self._speed.text().strip() else ''
+        fps = str(int(self._fps.text())) if self._fps.text().strip() else ''
+        self._rotation.setEnabled(False)
+        self._speed.setEnabled(False)
+        self._fps.setEnabled(False)
+        self._btn_apply.setEnabled(False)
+        # Provide alwas all three params even if they're empty
+        self.run_script('display', [rotation, speed, fps], self._on_apply_finished)
+
+    def _on_apply_finished(self, exit_code, exit_status):
+        """\
+        Called when display changes were finished.
+
+        :param exit_code:
+        :param exit_status:
+        """
+        if exit_code == 0:
+            self._rotation.setEnabled(True)
+            self._speed.setEnabled(True)
+            self._fps.setEnabled(True)
+            self._btn_apply.setEnabled(True)
+            self.ask_for_reboot()
+        else:
+            # Something went wrong
+            self._retrieve_display_config()
 
 
 if __name__ == "__main__":
