@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Sets the display config via TX-Pi config
+#
+ROTATE=$1
+SPEED=$2
+FPS=$3
+
+params=""
+
+if [ -n "$ROTATE" ]; then
+    params=":rotate=${ROTATE}"
+else
+   # Shouldn't happen
+    params=":rotate=0"
+fi
+
+if [ -n "$SPEED" ]; then
+    params="${params},speed=$(($SPEED * 1000000))"
+fi
+
+if [ -n "$FPS" ]; then
+    params="${params},fps=${FPS}"
+fi
+
+# Apply display config
+sed -i "s/^\(dtoverlay=waveshare[^:\n]\+\)[^\n]*$/\1${params}/g" /boot/config.txt
+
+exit 0
