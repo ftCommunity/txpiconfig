@@ -1,5 +1,9 @@
 # Changes
 
+# 0.0.6 - 2019-04-29
+* Better support for display config (calibration is updated, does
+  not work for rotate=90 yet)
+
 # 0.0.5 - 2019-04-28
 * Added display config
 * Support more than one arg in Pane.run_script
