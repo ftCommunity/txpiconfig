@@ -12,6 +12,8 @@ _CALIB_PATTERN = re.compile(r'^[\t ]*Option[\t ]+"Calibration"[\t ]+'
                             r'"(\d+)[ ]+(\d+)[ ]+(\d+)[ ]+(\d+)"'
                             r'[ ]*$', re.MULTILINE)
 
+_WS_DRIVER_PATTERN = re.compile(r'^dtoverlay=(waveshare[^:\n]+)', re.MULTILINE)
+
 
 def calc_calibration(old_calib, rotate):
     """\
@@ -41,13 +43,23 @@ def main(rotate, speed, fps):
     # config.txt
     with open('/boot/config.txt', 'r') as f:
         config_txt = f.read()
-    params = ':rotate={0}'.format(rotate)
+    m = _WS_DRIVER_PATTERN.search(config_txt)
+    if not m:
+        raise ValueError('Waveshare driver pattern did not match')
+    is_ws35 = 'waveshare35' in m.group(1)
+    params = ['rotate={0}'.format(rotate)]
+    if is_ws35 and rotate == 90:
+        # Special case for WS 3.5" displays: Omit rotation iff rotation is 90
+        params = []
     if speed and int(speed) > 16:  # 16 MHz is the default, no need to set it.
-        params += ',speed={0}'.format(int(speed) * 1000000)
+        params.append('speed={0}'.format(int(speed) * 1000000))
     if fps and int(fps) > 0:
-        params += ',fps={0}'.format(int(fps))
+        params.append('fps={0}'.format(int(fps)))
+    param_str = ''
+    if params:
+        param_str = ':{0}'.format(','.join(params))
     config_txt = re.sub(r'^(dtoverlay=waveshare[^:\n]+)[^\n]*$',
-                        r'\1{0}'.format(params), config_txt, flags=re.MULTILINE)
+                        r'\1{0}'.format(param_str), config_txt, flags=re.MULTILINE)
     # screen calibration
     swap_axes = 1 if rotate in (90, 270) else 0
     with open(_CALIB_FILE, 'r') as f:

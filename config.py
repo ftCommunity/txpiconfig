@@ -527,7 +527,7 @@ class DisplayPane(Pane):
         self._fps.setEnabled(False)
         self._btn_apply.setEnabled(False)
         config = self._parse_config()
-        self._rotation.setCurrentIndex(0)
+        self._rotation.setCurrentIndex(1)
         if config.rotation:
             idx = self._rotation.findText(str(config.rotation))
             if idx > -1:
