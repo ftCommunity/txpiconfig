@@ -74,6 +74,5 @@ def test_calibration(calib, rotate, expected):
     assert expected == display.calc_calibration(calib, rotate)
 
 
-
 if __name__ == '__main__':
     pytest.main([__file__])

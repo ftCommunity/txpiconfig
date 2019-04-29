@@ -208,7 +208,7 @@ class Pane(QWidget):
         and informs `callback` about the result.
 
         :param str name: The script name.
-        :param list args: A list of arguments
+        :param list args: A list of arguments (strings)
         :param callback: A function accepting the arguments ``exit_code`` and ``exit_status``
         """
         def on_script_finished(exit_code, exit_status):
@@ -221,18 +221,20 @@ class Pane(QWidget):
         proc.finished.connect(on_script_finished)
         proc.start('sudo {0} {1}'.format(script, ' '.join(args)))
 
-    def ask_for_reboot(self):
+    def ask_for_reboot(self, allow_cancel=True):
         """\
         Opens a dialog which recommends to reboot the device to apply changes.
 
-        The user may cancel it.
+        :param bool allow_cancel: Indicates if reboot may be cancelled
+                                  (default: ``True`` to allow cancellation)
         """
         dlg = TouchMessageBox(QCoreApplication.translate('ConfigApp', 'Reboot'), self)
-        dlg.setCancelButton()
+        if allow_cancel:
+            dlg.setCancelButton()
         dlg.addPixmap(QPixmap(os.path.join(app_path(), 'reboot.png')))
         dlg.setText('<font size="2">{0}<br><br><font size="1">{1}' \
                             .format(QCoreApplication.translate('ConfigApp', "It's recommended to restart the device."),
-                                    QCoreApplication.translate('ConfigApp', 'Do you want to reboot now?')))
+                                    (QCoreApplication.translate('ConfigApp', 'Do you want to reboot now?') if allow_cancel else '')))
         dlg.setPosButton(QCoreApplication.translate('ConfigApp', 'Reboot'))
         res, txt = dlg.exec_()
         if res:
@@ -486,10 +488,10 @@ class DisplayPane(Pane):
         self._btn_apply.clicked.connect(self._on_apply)
         self._rotation = QComboBox(self)
         self._rotation.addItems(['0', '90', '180', '270'])
-        self._speed = QLineEdit(self)
-        self._speed.setInputMask('99')
-        self._fps = QLineEdit(self)
-        self._fps.setInputMask('99')
+        self._speed = QSpinBox(self)
+        self._speed.setRange(16, 50)
+        self._fps = QSpinBox(self)
+        self._fps.setMaximum(50)
         layout = QVBoxLayout()
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Display'))
         layout.addWidget(lbl)
@@ -530,13 +532,13 @@ class DisplayPane(Pane):
             idx = self._rotation.findText(str(config.rotation))
             if idx > -1:
                 self._rotation.setCurrentIndex(idx)
-        self._speed.setText('')
+        self._speed.setValue(16)
         if config.speed:
             # Convert speed to MHz
-            self._speed.setText(str(config.speed // 1000000))
-        self._fps.setText('')
+            self._speed.setValue(config.speed // 1000000)
+        self._fps.setValue(0)
         if config.fps:
-            self._fps.setText(str(config.fps))
+            self._fps.setValue(config.fps)
         self._rotation.setEnabled(True)
         self._speed.setEnabled(True)
         self._fps.setEnabled(True)
@@ -557,14 +559,14 @@ class DisplayPane(Pane):
         Called to save the display config.
         """
         rotation = self._rotation.currentText()
-        speed = str(int(self._speed.text())) if self._speed.text().strip() else ''
-        fps = str(int(self._fps.text())) if self._fps.text().strip() else ''
+        speed = self._speed.value()
+        fps = self._fps.value()
         self._rotation.setEnabled(False)
         self._speed.setEnabled(False)
         self._fps.setEnabled(False)
         self._btn_apply.setEnabled(False)
         # Provide alwas all three params even if they're empty
-        self.run_script('display', [rotation, speed, fps], self._on_apply_finished)
+        self.run_script('display', [rotation, str(speed), str(fps)], self._on_apply_finished)
 
     def _on_apply_finished(self, exit_code, exit_status):
         """\
