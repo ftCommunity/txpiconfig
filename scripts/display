@@ -8,8 +8,8 @@ import re
 
 _CALIB_FILE = '/usr/share/X11/xorg.conf.d/99-calibration.conf'
 
-_CALIB_PATTERN = re.compile(r'^[\t ]*Option[\t ]+"Calibration"[\t ]+"[\t ]*'
-                            r'(\d+)[ ]+(\d+)[ ]+(\d+)[ ]+(\d+)"'
+_CALIB_PATTERN = re.compile(r'^[\t ]*Option[\t ]+"Calibration"[\t ]+'
+                            r'"(\d+)[ ]+(\d+)[ ]+(\d+)[ ]+(\d+)"'
                             r'[ ]*$', re.MULTILINE)
 
 
@@ -72,6 +72,6 @@ def main(rotate, speed, fps):
 if __name__ == '__main__':
     try:
         main(*sys.argv[1:])
-        sys.exit(0)
-    except:
+    except Exception as ex:
+        print(ex)
         sys.exit(1)
