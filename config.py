@@ -489,7 +489,7 @@ class DisplayPane(Pane):
         self._rotation = QComboBox(self)
         self._rotation.addItems(['0', '90', '180', '270'])
         self._speed = QSpinBox(self)
-        self._speed.setRange(16, 50)
+        self._speed.setRange(16, 125)
         self._fps = QSpinBox(self)
         self._fps.setMaximum(50)
         layout = QVBoxLayout()
