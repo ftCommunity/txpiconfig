@@ -309,7 +309,7 @@ class ServicesPane(Pane):
         """\
         Update check boxes.
         """
-        #self._update_current_service_status()
+        self._update_current_service_status()
 
     def _set_gui_elements_enabled(self, enabled):
         """\
