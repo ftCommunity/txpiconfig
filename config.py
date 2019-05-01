@@ -285,7 +285,7 @@ class ServicesPane(Pane):
         super(ServicesPane, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
         self._cb_ssh = QCheckBox(QCoreApplication.translate('ConfigApp', 'SSH server'))
         self._cb_vnc = QCheckBox(QCoreApplication.translate('ConfigApp', 'VNC server'))
-        self._cb_i2c = QCheckBox(QCoreApplication.translate('ConfigApp', 'I²C bus'))
+        self._cb_i2c = QCheckBox(QCoreApplication.translate('ConfigApp', 'I2C bus'))
         layout = QVBoxLayout()
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Services'))
         layout.addWidget(lbl)
@@ -309,7 +309,7 @@ class ServicesPane(Pane):
         """\
         Update check boxes.
         """
-        self._update_current_service_status()
+        #self._update_current_service_status()
 
     def _set_gui_elements_enabled(self, enabled):
         """\

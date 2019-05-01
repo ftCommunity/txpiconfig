@@ -80,7 +80,7 @@
     </message>
     <message>
         <location filename="config.py" line="288"/>
-        <source>IÂ²C bus</source>
+        <source>I2C bus</source>
         <translation>I²C-Bus</translation>
     </message>
     <message>
