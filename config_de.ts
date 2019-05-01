@@ -86,7 +86,7 @@
     <message>
         <location filename="config.py" line="299"/>
         <source>The state of the services is persistent: It remains after shutdown.</source>
-        <translation>Der Service-Stutus bleibt auch nach einem Shutdown erhalten.</translation>
+        <translation>Der Status bleibt nach dem Ausschalten erhalten.</translation>
     </message>
 </context>
 </TS>
