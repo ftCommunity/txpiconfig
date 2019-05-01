@@ -565,7 +565,7 @@ class DisplayPane(Pane):
         self._btn_apply.setEnabled(False)
         config = self._parse_config()
         self._rotation.setCurrentIndex(1)
-        if config.rotation:
+        if config.rotation is not None:  # Check for None since 0 is a valid value
             idx = self._rotation.findText(str(config.rotation))
             if idx > -1:
                 self._rotation.setCurrentIndex(idx)
