@@ -221,20 +221,18 @@ class Pane(QWidget):
         proc.finished.connect(on_script_finished)
         proc.start('sudo {0} {1}'.format(script, ' '.join(args)))
 
-    def ask_for_reboot(self, allow_cancel=True):
+    def ask_for_reboot(self):
         """\
         Opens a dialog which recommends to reboot the device to apply changes.
 
-        :param bool allow_cancel: Indicates if reboot may be cancelled
-                                  (default: ``True`` to allow cancellation)
+        The user may cancel the reboot, though.
         """
         dlg = TouchMessageBox(QCoreApplication.translate('ConfigApp', 'Reboot'), self)
-        if allow_cancel:
-            dlg.setCancelButton()
+        dlg.setCancelButton()
         dlg.addPixmap(QPixmap(os.path.join(app_path(), 'reboot.png')))
         dlg.setText('<font size="2">{0}<br><br><font size="1">{1}' \
                             .format(QCoreApplication.translate('ConfigApp', "It's recommended to restart the device."),
-                                    (QCoreApplication.translate('ConfigApp', 'Do you want to reboot now?') if allow_cancel else '')))
+                                    QCoreApplication.translate('ConfigApp', 'Do you want to reboot now?')))
         dlg.setPosButton(QCoreApplication.translate('ConfigApp', 'Reboot'))
         res, txt = dlg.exec_()
         if res:
@@ -287,24 +285,25 @@ class ServicesPane(Pane):
         super(ServicesPane, self).__init__(parent, name=QCoreApplication.translate('ConfigApp', 'Services'))
         self._cb_ssh = QCheckBox(QCoreApplication.translate('ConfigApp', 'SSH server'))
         self._cb_vnc = QCheckBox(QCoreApplication.translate('ConfigApp', 'VNC server'))
+        self._cb_i2c = QCheckBox(QCoreApplication.translate('ConfigApp', 'I²C bus'))
         layout = QVBoxLayout()
         lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Services'))
         layout.addWidget(lbl)
-        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'Enable / Disable'))
-        lbl.setObjectName('smallerlabel')
-        layout.addWidget(lbl)
         layout.addStretch()
         layout.addWidget(self._cb_ssh)
-        layout.addWidget(QLabel(''))
+        layout.addStretch()
         layout.addWidget(self._cb_vnc)
         layout.addStretch()
-        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'The state of the servers is persistent: It remains after reboot / shutdown.'))
+        layout.addWidget(self._cb_i2c)
+        layout.addStretch()
+        lbl = QLabel(QCoreApplication.translate('ConfigApp', 'The state of the services is persistent: It remains after shutdown.'))
         lbl.setWordWrap(True)
         lbl.setObjectName('tinylabel')
         layout.addWidget(lbl)
         self.setLayout(layout)
         self._cb_ssh.toggled.connect(lambda checked: self._toggle_service(_SERVICE_SSH, checked))
         self._cb_vnc.toggled.connect(lambda checked: self._toggle_service(_SERVICE_VNC, checked))
+        self._cb_i2c.toggled.connect(lambda checked: self._toggle_i2c(checked))
 
     def before_focus(self):
         """\
@@ -312,25 +311,35 @@ class ServicesPane(Pane):
         """
         self._update_current_service_status()
 
+    def _set_gui_elements_enabled(self, enabled):
+        """\
+        Enables / disables the checkboxes and blocks / unblocks the signals.
+
+        :param bool enabled: ``True`` to enable all GUI elements and let them emit signals;
+                             ``False`` to disable all GUI elements and to omit signals.
+        """
+        self._cb_ssh.setEnabled(enabled)
+        self._cb_vnc.setEnabled(enabled)
+        self._cb_i2c.setEnabled(enabled)
+        # Block signals if enabled is False to avoid a "toggled" signal if the
+        # "checked" state is changed via code
+        self._cb_ssh.blockSignals(not enabled)
+        self._cb_vnc.blockSignals(not enabled)
+        self._cb_i2c.blockSignals(not enabled)
+
     def _update_current_service_status(self):
         """\
         Updates the the internal state and the checkboxes acc. to the current
         status of the services.
         """
-        self._cb_ssh.setEnabled(False)
-        self._cb_vnc.setEnabled(False)
-        self._ssh_enabled = self._get_service_status(_SERVICE_SSH)
-        self._vnc_enabled = self._get_service_status(_SERVICE_VNC)
-        # Avoid that a toggled signal is sent
-        self._cb_ssh.blockSignals(True)
-        self._cb_vnc.blockSignals(True)
-        self._cb_ssh.setChecked(self._ssh_enabled)
-        self._cb_vnc.setChecked(self._vnc_enabled)
-        # Signals may be emitted again.
-        self._cb_ssh.blockSignals(False)
-        self._cb_vnc.blockSignals(False)
-        self._cb_ssh.setEnabled(True)
-        self._cb_vnc.setEnabled(True)
+        self._set_gui_elements_enabled(False)
+        ssh_enabled = self._get_service_status(_SERVICE_SSH)
+        vnc_enabled = self._get_service_status(_SERVICE_VNC)
+        i2c_enabled = self._get_i2c_status()
+        self._cb_ssh.setChecked(ssh_enabled)
+        self._cb_vnc.setChecked(vnc_enabled)
+        self._cb_i2c.setChecked(i2c_enabled)
+        self._set_gui_elements_enabled(True)
 
     @staticmethod
     def _get_service_status(service_name):
@@ -345,6 +354,17 @@ class ServicesPane(Pane):
         output, err = proc.communicate()
         return b'Active: active (running)' in output
 
+    @staticmethod
+    def _get_i2c_status():
+        """\
+        Returns if the I2C bus is enabled.
+
+        :return: Boolean value if the I2C bus is enabled or not.
+        """
+        with open('/boot/config.txt', 'r') as f:
+            return re.search(r'^(device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?(=(on|true|yes|1))?(,.*)?$',
+                             f.read(), re.MULTILINE) is not None
+
     def _toggle_service(self, service_name, enable):
         """\
         Enable / disable the provided service.
@@ -353,12 +373,30 @@ class ServicesPane(Pane):
         service is disabled and stopped.
 
         :param service_name: The service name.
-        :param enable: Boolean indicating if the service should become enabled.
+        :param bool enable: Boolean indicating if the service should become enabled.
         """
-        self._cb_ssh.setEnabled(False)
-        self._cb_vnc.setEnabled(False)
+        self._set_gui_elements_enabled(False)
         self.run_script(service_name, [('enable' if enable else 'disable')],
                         self._on_toggle_finished)
+
+    def _toggle_i2c(self, enable):
+        """
+        Toggles the I2C bus.
+
+        :param bool enable: Boolean if the I2C bus should be enabled.
+        """
+        def on_toggled(exit_code, exit_status):
+            """\
+            Special "toggle finished" function which displays a reboot dialog
+            iff toggling was successful.
+            """
+            self._on_toggle_finished(exit_code, exit_status)
+            if exit_code == 0:
+                self.ask_for_reboot()
+
+        self._set_gui_elements_enabled(False)
+        self.run_script('i2cbus', [('enable' if enable else 'disable')],
+                        on_toggled)
 
     def _on_toggle_finished(self, exit_code, exit_status):
         """\
@@ -368,8 +406,7 @@ class ServicesPane(Pane):
         :param exit_status:
         """
         if exit_code == 0:
-            self._cb_ssh.setEnabled(True)
-            self._cb_vnc.setEnabled(True)
+            self._set_gui_elements_enabled(True)
         else:
             # Something went wrong, update the current state of the services
             self._update_current_service_status()

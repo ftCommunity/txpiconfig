@@ -55,9 +55,7 @@ def main(rotate, speed, fps):
         params.append('speed={0}'.format(int(speed) * 1000000))
     if fps and int(fps) > 0:
         params.append('fps={0}'.format(int(fps)))
-    param_str = ''
-    if params:
-        param_str = ':{0}'.format(','.join(params))
+    param_str = ':{0}'.format(','.join(params)) if params else ''
     config_txt = re.sub(r'^(dtoverlay=waveshare[^:\n]+)[^\n]*$',
                         r'\1{0}'.format(param_str), config_txt, flags=re.MULTILINE)
     # screen calibration
