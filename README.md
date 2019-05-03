@@ -29,6 +29,10 @@ recommended reboot, though.
 
 
 ## Releases
-
 If the develop branch is stable, create a release in the
 master branch, tagged with a version number. 
+
+
+## Note
+Since the TX-Pi setup uses the master branch w/o any version number,
+the master branch must be stable.
