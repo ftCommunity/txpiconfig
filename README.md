@@ -32,5 +32,3 @@ recommended reboot, though.
 
 If the develop branch is stable, create a release in the
 master branch, tagged with a version number. 
-Update the ``tx-pi-setup.sh`` script with the version number (see 
-``TXPICONFIG_VERSION`` variable).

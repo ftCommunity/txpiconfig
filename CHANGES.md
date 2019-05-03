@@ -1,5 +1,10 @@
 # Changes
 
+# 0.0.7 - 2019-05-03
+* Calibration works for 3,5" rotate=90
+* Added support to enable / disable I²C bus
+* Intitial release to be used by the master branch of the TX-Pi setup
+
 # 0.0.6 - 2019-04-29
 * Better support for display config (calibration is updated, does
   not work for rotate=90 yet)
