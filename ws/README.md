@@ -2,7 +2,7 @@
 
 Source: <https://www.waveshare.com/w/upload/0/00/LCD-show-170703.tar.gz>
 
-# 3,2" display
+## 3,2" display
 
 | LCD-show orientation | X min | X max | Y min | Y max | Swap | ``rotate=``-value|
 |----------------------|-------|-------|-------|-------|------|------------------|
@@ -12,7 +12,7 @@ Source: <https://www.waveshare.com/w/upload/0/00/LCD-show-170703.tar.gz>
 | 270                  | 3835  |  219  | 3984  |  219  | 0    | 180              |
 
 
-# 3,5 A / B display
+## 3,5" A / B display
 
 | LCD-show orientation | X min | X max | Y min | Y max | Swap | ``rotate=``-value|
 |----------------------|-------|-------|-------|-------|------|------------------|
